@@ -31,7 +31,7 @@
 name: FuCad CI primary
 
 on:
-  workflow_dispatch: ~
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -72,11 +72,7 @@ jobs:
       changedPythonFiles: ${{ needs.Prepare.outputs.changedPythonFiles }}
 
   WrapUp:
-    needs: [
-        Prepare,
-        Ubuntu,
-        Lint
-      ]
+    needs: [Prepare, Ubuntu, Lint]
     if: always()
     uses: ./.github/workflows/sub_wrapup.yml
     with:
