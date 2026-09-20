@@ -50,7 +50,7 @@ on:
         required: false
       runnerOS:
         description: "JSON array of GitHub runner labels"
-        default: '["windows-2022", "ubuntu-latest", "macos-latest"]'
+        default: '["macos-latest"]'
         type: string
         required: false
     outputs:

@@ -22,7 +22,7 @@
 # *                                                                         *
 # ***************************************************************************
 
-# This workflow runs label-gated CI jobs (macOS and Windows builds).
+# This workflow runs label-gated macOS builds.
 # It lives in a separate workflow from CI_primary.yml so that adding a
 # label does not cancel the in-progress Linux build and lint run.
 #
@@ -162,26 +162,8 @@ jobs:
       artifactBasename: Pixi-${{ github.run_id }}
       skipBuild: ${{ needs.Gate.outputs.should-run != 'true' }}
 
-  Windows:
-    needs: [Gate, Prepare]
-    if: >-
-      needs.Prepare.result == 'success'
-      && !startsWith(github.head_ref, 'refs/heads/backport-')
-      && (github.event_name != 'pull_request'
-          || startsWith(github.event.pull_request.base.ref, 'releases/')
-          || contains(toJSON(github.event.pull_request.labels.*.name), 'Approved:'))
-    uses: ./.github/workflows/sub_buildWindows.yml
-    with:
-      artifactBasename: Windows-${{ github.run_id }}
-      skipBuild: ${{ needs.Gate.outputs.should-run != 'true' }}
-
   WrapUp:
-    needs: [
-        Gate,
-        Prepare,
-        Pixi,
-        Windows
-      ]
+    needs: [Gate, Prepare, Pixi]
     if: always()
     uses: ./.github/workflows/sub_wrapup.yml
     with:
