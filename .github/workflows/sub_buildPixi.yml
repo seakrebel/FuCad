@@ -262,17 +262,41 @@ jobs:
           reportFile: ${{env.reportdir}}${{ env.reportfilename }}
           shellCmd: ${{ env.shellCmd }}
 
+      - name: Build macOS application bundle
+        if: runner.os == 'macOS' && !inputs.skipBuild
+        env:
+          BUILD_TAG: run-${{ github.run_id }}
+          MACOS_DEPLOYMENT_TARGET: "11.0"
+          MACOS_SIGN_RELEASE: "false"
+          UPLOAD_RELEASE: "false"
+        run: |
+          set -euo pipefail
+          cd package/rattler-build
+          pixi install --frozen
+          pixi run -e package create_bundle
+
+      - name: Upload macOS application bundle
+        if: success() && runner.os == 'macOS' && !inputs.skipBuild
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ${{ inputs.artifactBasename }}-${{ matrix.os }}-Bundle
+          retention-days: 30
+          path: |
+            package/rattler-build/osx/FuCad.app
+            package/rattler-build/osx/*.dmg
+            package/rattler-build/osx/*.dmg-SHA256.txt
+
       - name: Save Compiler Cache
         id: cache-save
         if: "!inputs.skipBuild"
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
           path: ${{ env.CCACHE_DIR }}
           key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
 
       - name: Upload logs
         if: "!inputs.skipBuild"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ inputs.artifactBasename }}-${{ matrix.os }}-Logs
           path: |
@@ -281,7 +305,7 @@ jobs:
 
       - name: Upload report
         if: "!inputs.skipBuild"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: ${{ env.reportfilename }}
           path: |
