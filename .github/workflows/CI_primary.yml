@@ -32,13 +32,13 @@ name: FuCad CI primary
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - releases/**
-  pull_request:
-    types: [opened, synchronize, reopened]
-  merge_group: ~
+  # push:
+  #   branches:
+  #     - main
+  #     - releases/**
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  # merge_group: ~
 
 permissions:
   contents: read

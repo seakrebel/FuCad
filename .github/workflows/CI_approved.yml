@@ -38,13 +38,13 @@ name: FuCad CI approved
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - releases/**
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
-  merge_group: ~
+  # push:
+  #   branches:
+  #     - main
+  #     - releases/**
+  # pull_request:
+  #   types: [opened, synchronize, reopened, labeled]
+  # merge_group: ~
 
 permissions:
   contents: read
