@@ -48,6 +48,11 @@ on:
         default: false
         type: boolean
         required: false
+      runnerOS:
+        description: "JSON array of GitHub runner labels"
+        default: '["windows-2022", "ubuntu-latest", "macos-latest"]'
+        type: string
+        required: false
     outputs:
       reportFile:
         value: ${{ jobs.Build.outputs.reportFile }}
@@ -79,11 +84,13 @@ jobs:
     outputs:
       reportFile: ${{ steps.Init.outputs.reportFile }}
 
+
+
     strategy:
       max-parallel: 6
       fail-fast: false
       matrix:
-        os: [windows-2022, ubuntu-latest, macos-latest]
+        os: ${{ fromJSON(inputs.runnerOS) }}
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
