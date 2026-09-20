@@ -55,7 +55,7 @@ on:
         required: false
     outputs:
       reportFile:
-        value: ${{ jobs.Build.outputs.reportFile }}
+        value: ${{ jobs.build_with_pixi.outputs.reportFile }}
 
 permissions:
   contents: read
@@ -84,8 +84,6 @@ jobs:
     outputs:
       reportFile: ${{ steps.Init.outputs.reportFile }}
 
-
-
     strategy:
       max-parallel: 6
       fail-fast: false
@@ -93,198 +91,198 @@ jobs:
         os: ${{ fromJSON(inputs.runnerOS) }}
 
     steps:
-    - name: Harden the runner (Audit all outbound calls)
-      if: "!inputs.skipBuild"
-      uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
-      with:
-        egress-policy: audit
+      - name: Harden the runner (Audit all outbound calls)
+        if: "!inputs.skipBuild"
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
 
-    - name: Set Platform Environment Variables
-      if: "!inputs.skipBuild"
-      shell: bash -l {0}
-      env:
-        OPERATING_SYSTEM: ${{ runner.os }}
-      run: |
-        if [[ $OPERATING_SYSTEM == 'Windows' ]]; then
-          echo 'CCACHE_COMPILERCHECK=%compiler%' >> "$GITHUB_ENV"
-        else
-          echo 'CCACHE_COMPILERCHECK=%compiler% -dumpfullversion -dumpversion' >> "$GITHUB_ENV"
-        fi
+      - name: Set Platform Environment Variables
+        if: "!inputs.skipBuild"
+        shell: bash -l {0}
+        env:
+          OPERATING_SYSTEM: ${{ runner.os }}
+        run: |
+          if [[ $OPERATING_SYSTEM == 'Windows' ]]; then
+            echo 'CCACHE_COMPILERCHECK=%compiler%' >> "$GITHUB_ENV"
+          else
+            echo 'CCACHE_COMPILERCHECK=%compiler% -dumpfullversion -dumpversion' >> "$GITHUB_ENV"
+          fi
 
-    - name: Checkout
-      if: "!inputs.skipBuild"
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Checkout
+        if: "!inputs.skipBuild"
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-    - name: Add GCC Problem Matcher
-      if: runner.os == 'Linux' && !inputs.skipBuild
-      run: |
-        echo "::add-matcher::${{ github.workspace }}/.github/problemMatcher/gcc.json"
+      - name: Add GCC Problem Matcher
+        if: runner.os == 'Linux' && !inputs.skipBuild
+        run: |
+          echo "::add-matcher::${{ github.workspace }}/.github/problemMatcher/gcc.json"
 
-    - name: Add Clang Problem Matcher
-      if: runner.os == 'macOS' && !inputs.skipBuild
-      run: |
-        echo "::add-matcher::${{ github.workspace }}/.github/problemMatcher/clang.json"
+      - name: Add Clang Problem Matcher
+        if: runner.os == 'macOS' && !inputs.skipBuild
+        run: |
+          echo "::add-matcher::${{ github.workspace }}/.github/problemMatcher/clang.json"
 
-    - name: Add MSVC++ Problem Matcher
-      if: runner.os == 'Windows' && !inputs.skipBuild
-      run: |
-        echo "::add-matcher::${{ github.workspace }}/.github/problemMatcher/msvc.json"
+      - name: Add MSVC++ Problem Matcher
+        if: runner.os == 'Windows' && !inputs.skipBuild
+        run: |
+          echo "::add-matcher::${{ github.workspace }}/.github/problemMatcher/msvc.json"
 
-    - name: Make needed directories, files and initializations
-      if: "!inputs.skipBuild"
-      id: Init
-      run: |
-        mkdir -p ${{ env.builddir }}
-        mkdir -p ${{ env.logdir }}
-        mkdir -p ${{ env.reportdir }}
-        echo "reportFile=${{ env.reportfilename }}" >> $GITHUB_OUTPUT
+      - name: Make needed directories, files and initializations
+        if: "!inputs.skipBuild"
+        id: Init
+        run: |
+          mkdir -p ${{ env.builddir }}
+          mkdir -p ${{ env.logdir }}
+          mkdir -p ${{ env.reportdir }}
+          echo "reportFile=${{ env.reportfilename }}" >> $GITHUB_OUTPUT
 
-    - if: "!inputs.skipBuild"
-      uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
-      with:
-        pixi-version: v0.68.1
-        cache: false
+      - if: "!inputs.skipBuild"
+        uses: prefix-dev/setup-pixi@a09b6247153796b190642a2b53fac4241043cf6f # v0.10.0
+        with:
+          pixi-version: v0.68.1
+          cache: false
 
-    - name: Restore Compiler Cache
-      id: cache-restore
-      if: "!inputs.skipBuild"
-      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-      with:
-        path: ${{ env.CCACHE_DIR }}
-        key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
-        restore-keys: |
-          FC-${{ env.cacheKey }}-${{ github.ref }}-
-          FC-${{ env.cacheKey }}-
+      - name: Restore Compiler Cache
+        id: cache-restore
+        if: "!inputs.skipBuild"
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
+          restore-keys: |
+            FC-${{ env.cacheKey }}-${{ github.ref }}-
+            FC-${{ env.cacheKey }}-
 
-    - name: Print CCache statistics before build, reset stats and print config
-      if: "!inputs.skipBuild"
-      run: |
-        pixi run ccache -s
-        pixi run ccache -z
-        pixi run ccache -p
+      - name: Print CCache statistics before build, reset stats and print config
+        if: "!inputs.skipBuild"
+        run: |
+          pixi run ccache -s
+          pixi run ccache -z
+          pixi run ccache -p
 
-    - name: CMake Configure
-      if: "!inputs.skipBuild"
-      run: |
-        pixi run configure-${{ env.config }}
+      - name: CMake Configure
+        if: "!inputs.skipBuild"
+        run: |
+          pixi run configure-${{ env.config }}
 
-    - name: CMake Build
-      if: "!inputs.skipBuild"
-      run: |
-        pixi run build-${{ env.config }}
+      - name: CMake Build
+        if: "!inputs.skipBuild"
+        run: |
+          pixi run build-${{ env.config }}
 
-    - name: Print ccache statistics after Build
-      if: "!inputs.skipBuild"
-      run: |
-        pixi run ccache -s
+      - name: Print ccache statistics after Build
+        if: "!inputs.skipBuild"
+        run: |
+          pixi run ccache -s
 
-    - name: FuCad CLI tests on build dir
-      if: inputs.testOnBuildDir && !inputs.skipBuild
-      timeout-minutes: 10
-      uses: ./.github/workflows/actions/runPythonTests
-      with:
-        testDescription: "CLI tests on build dir"
-        testCommand: ${{ env.builddir }}/bin/FuCadCmd -t 0
-        logFile: ${{ env.logdir }}TestCLIBuild.log
-        reportFile: ${{env.reportdir}}${{ env.reportfilename }}
-        shellCmd: ${{ env.shellCmd }}
+      - name: FuCad CLI tests on build dir
+        if: inputs.testOnBuildDir && !inputs.skipBuild
+        timeout-minutes: 10
+        uses: ./.github/workflows/actions/runPythonTests
+        with:
+          testDescription: "CLI tests on build dir"
+          testCommand: ${{ env.builddir }}/bin/FuCadCmd -t 0
+          logFile: ${{ env.logdir }}TestCLIBuild.log
+          reportFile: ${{env.reportdir}}${{ env.reportfilename }}
+          shellCmd: ${{ env.shellCmd }}
 
-    - name: FuCad GUI tests on build dir
-      if: runner.os == 'Linux' && inputs.testOnBuildDir && !inputs.skipBuild
-      timeout-minutes: 15
-      uses: ./.github/workflows/actions/runPythonTests
-      with:
-        testDescription: "GUI tests on build dir"
-        testCommand: xvfb-run ${{ env.builddir }}/bin/FuCad -t 0
-        logFile: ${{ env.logdir }}TestGUIBuild.log
-        reportFile: ${{env.reportdir}}${{ env.reportfilename }}
-        shellCmd: ${{ env.shellCmd }}
+      - name: FuCad GUI tests on build dir
+        if: runner.os == 'Linux' && inputs.testOnBuildDir && !inputs.skipBuild
+        timeout-minutes: 15
+        uses: ./.github/workflows/actions/runPythonTests
+        with:
+          testDescription: "GUI tests on build dir"
+          testCommand: xvfb-run ${{ env.builddir }}/bin/FuCad -t 0
+          logFile: ${{ env.logdir }}TestGUIBuild.log
+          reportFile: ${{env.reportdir}}${{ env.reportfilename }}
+          shellCmd: ${{ env.shellCmd }}
 
-    - name: Coin node snapshot visual tests on build dir
-      if: runner.os == 'Linux' && inputs.testCoinNodeSnapshots && !inputs.skipBuild
-      timeout-minutes: 15
-      uses: ./.github/workflows/actions/runPythonTests
-      with:
-        testDescription: "Coin node snapshot visual tests on build dir"
-        testCommand: |
-          FC_VISUAL_OUT_DIR="/tmp/FuCadTesting/CoinNodeSnapshots" \
-          xvfb-run -a -s "-screen 0 1024x768x24" \
-            "${{ env.builddir }}/bin/FuCad" -t TestCoinNodeSnapshots
-        logFile: ${{ env.logdir }}TestCoinNodeSnapshotsBuild.log
-        reportFile: ${{env.reportdir}}${{ env.reportfilename }}
-        shellCmd: ${{ env.shellCmd }}
+      - name: Coin node snapshot visual tests on build dir
+        if: runner.os == 'Linux' && inputs.testCoinNodeSnapshots && !inputs.skipBuild
+        timeout-minutes: 15
+        uses: ./.github/workflows/actions/runPythonTests
+        with:
+          testDescription: "Coin node snapshot visual tests on build dir"
+          testCommand: |
+            FC_VISUAL_OUT_DIR="/tmp/FuCadTesting/CoinNodeSnapshots" \
+            xvfb-run -a -s "-screen 0 1024x768x24" \
+              "${{ env.builddir }}/bin/FuCad" -t TestCoinNodeSnapshots
+          logFile: ${{ env.logdir }}TestCoinNodeSnapshotsBuild.log
+          reportFile: ${{env.reportdir}}${{ env.reportfilename }}
+          shellCmd: ${{ env.shellCmd }}
 
-    - name: Upload Coin node snapshot artifacts (on failure)
-      if: failure() && runner.os == 'Linux' && inputs.testCoinNodeSnapshots && !inputs.skipBuild
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: ${{ inputs.artifactBasename }}-${{ matrix.os }}-CoinNodeSnapshots
-        path: /tmp/FuCadTesting/CoinNodeSnapshots
+      - name: Upload Coin node snapshot artifacts (on failure)
+        if: failure() && runner.os == 'Linux' && inputs.testCoinNodeSnapshots && !inputs.skipBuild
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.artifactBasename }}-${{ matrix.os }}-CoinNodeSnapshots
+          path: /tmp/FuCadTesting/CoinNodeSnapshots
 
-    - name: src/Tools tests
-      if: "!inputs.skipBuild"
-      run: pixi run python -m unittest discover -s src/Tools/tests -p "test_*.py"
+      - name: src/Tools tests
+        if: "!inputs.skipBuild"
+        run: pixi run python -m unittest discover -s src/Tools/tests -p "test_*.py"
 
-    - name: C++ tests
-      timeout-minutes: 10
-      if: runner.os != 'Windows' && !inputs.skipBuild
-      uses: ./.github/workflows/actions/runCPPTests/runAllTests
-      with:
-        reportdir: ${{ env.reportdir }}
-        builddir: ${{ env.builddir }}
-        reportFile: ${{ env.reportdir }}${{ env.reportfilename }}
-        shellCmd: ${{ env.shellCmd }}
+      - name: C++ tests
+        timeout-minutes: 10
+        if: runner.os != 'Windows' && !inputs.skipBuild
+        uses: ./.github/workflows/actions/runCPPTests/runAllTests
+        with:
+          reportdir: ${{ env.reportdir }}
+          builddir: ${{ env.builddir }}
+          reportFile: ${{ env.reportdir }}${{ env.reportfilename }}
+          shellCmd: ${{ env.shellCmd }}
 
-    - name: CMake Install
-      if: "!inputs.skipBuild"
-      run: |
-        pixi run install-${{ env.config }}
+      - name: CMake Install
+        if: "!inputs.skipBuild"
+        run: |
+          pixi run install-${{ env.config }}
 
-    - name: FuCad CLI tests on install
-      if: runner.os != 'Windows' && !inputs.skipBuild
-      timeout-minutes: 10
-      uses: ./.github/workflows/actions/runPythonTests
-      with:
-        testDescription: "CLI tests on install"
-        testCommand: FuCadCmd -t 0
-        logFile: ${{ env.logdir }}TestCLIInstall.log
-        reportFile: ${{env.reportdir}}${{ env.reportfilename }}
-        shellCmd: ${{ env.shellCmd }}
+      - name: FuCad CLI tests on install
+        if: runner.os != 'Windows' && !inputs.skipBuild
+        timeout-minutes: 10
+        uses: ./.github/workflows/actions/runPythonTests
+        with:
+          testDescription: "CLI tests on install"
+          testCommand: FuCadCmd -t 0
+          logFile: ${{ env.logdir }}TestCLIInstall.log
+          reportFile: ${{env.reportdir}}${{ env.reportfilename }}
+          shellCmd: ${{ env.shellCmd }}
 
-    - name: FuCad GUI tests on install
-      # if: runner.os == 'Linux' && !inputs.skipBuild
-      # currently broken on Qt6 builds
-      if: false
-      timeout-minutes: 15
-      uses: ./.github/workflows/actions/runPythonTests
-      with:
-        testDescription: "GUI tests on install"
-        testCommand: xvfb-run FuCad -t 0
-        logFile: ${{ env.logdir }}TestGUIInstall.log
-        reportFile: ${{env.reportdir}}${{ env.reportfilename }}
-        shellCmd: ${{ env.shellCmd }}
+      - name: FuCad GUI tests on install
+        # if: runner.os == 'Linux' && !inputs.skipBuild
+        # currently broken on Qt6 builds
+        if: false
+        timeout-minutes: 15
+        uses: ./.github/workflows/actions/runPythonTests
+        with:
+          testDescription: "GUI tests on install"
+          testCommand: xvfb-run FuCad -t 0
+          logFile: ${{ env.logdir }}TestGUIInstall.log
+          reportFile: ${{env.reportdir}}${{ env.reportfilename }}
+          shellCmd: ${{ env.shellCmd }}
 
-    - name: Save Compiler Cache
-      id: cache-save
-      if: "!inputs.skipBuild"
-      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-      with:
-        path: ${{ env.CCACHE_DIR }}
-        key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
+      - name: Save Compiler Cache
+        id: cache-save
+        if: "!inputs.skipBuild"
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: FC-${{ env.cacheKey }}-${{ github.ref }}-${{ github.run_id }}
 
-    - name: Upload logs
-      if: "!inputs.skipBuild"
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: ${{ inputs.artifactBasename }}-${{ matrix.os }}-Logs
-        path: |
-          ${{ env.logdir }}
-          /var/crash/*FuCad*
+      - name: Upload logs
+        if: "!inputs.skipBuild"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ inputs.artifactBasename }}-${{ matrix.os }}-Logs
+          path: |
+            ${{ env.logdir }}
+            /var/crash/*FuCad*
 
-    - name: Upload report
-      if: "!inputs.skipBuild"
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: ${{ env.reportfilename }}
-        path: |
-          ${{env.reportdir}}${{ env.reportfilename }}
+      - name: Upload report
+        if: "!inputs.skipBuild"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.reportfilename }}
+          path: |
+            ${{env.reportdir}}${{ env.reportfilename }}
